@@ -1,4 +1,11 @@
 console.log("AutoTrack Liquidity – JS loaded");
+const CHAIN_MAP = {
+  "0x1": "Ethereum Mainnet",
+  "0xa": "Optimism",
+  "0xa4b1": "Arbitrum One",
+  "0x2105": "Base",
+};
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const connectBtn = document.getElementById("connectBtn");
@@ -29,8 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const chainId = await window.ethereum.request({
         method: "eth_chainId"
       });
-
-      chainEl.textContent = chainId;
+        
+      const chainName =
+        CHAIN_MAP[chainId] || `Unsupported (${chainId})`;
+        
+      chainEl.textContent = chainName;
+        
 
       const balance = await window.ethereum.request({
         method: "eth_getBalance",
