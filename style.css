@@ -1,57 +1,93 @@
 * {
-    box-sizing: border-box;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  
-  body {
-    margin: 0;
-    background: #0b0f1a;
-    color: #eaeaf0;
-  }
-  
-  .app {
-    max-width: 600px;
-    margin: 60px auto;
-    padding: 20px;
-  }
-  
-  h1 {
-    margin-bottom: 4px;
-    color: #60a5fa;
-  }
-  
-  .subtitle {
-    color: #9ca3af;
-    margin-bottom: 30px;
-  }
-  
-  .card {
-    background: #111827;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 30px;
-  }
-  
-  button {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    border-radius: 10px;
-    border: none;
-    background: #374151;
-    color: #9ca3af;
-    cursor: not-allowed;
-  }
-  
-  .status p {
-    margin: 8px 0;
-  }
-  
-  .debug {
-    background: #020617;
-    border-radius: 12px;
-    padding: 15px;
-    font-size: 14px;
-    color: #94a3b8;
-  }
-  
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #0b0f1a;
+  color: #eaeaf0;
+}
+
+/* ================================
+   Layout
+================================ */
+
+.app {
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 4px;
+  color: #60a5fa;
+}
+
+.subtitle {
+  color: #9ca3af;
+  margin-bottom: 30px;
+}
+
+/* ================================
+   Card
+================================ */
+
+.card {
+  background: #111827;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+/* ================================
+   Button States
+================================ */
+
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  background: #2563eb;        /* Active blue */
+  color: #eaeaf0;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+button:disabled {
+  background: #1f2933;
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* ================================
+   Status Panel
+================================ */
+
+.status p {
+  margin: 8px 0;
+}
+
+.status span {
+  font-weight: 500;
+}
+
+/* ================================
+   Debug Panel
+================================ */
+
+.debug {
+  background: #020617;
+  border-radius: 12px;
+  padding: 15px;
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
