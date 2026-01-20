@@ -4,120 +4,71 @@
   <meta charset="UTF-8" />
   <title>AutoTrack Liquidity – Beta</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Read-only, non-custodial analytics platform for tracking DeFi liquidity positions directly from on-chain data." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
   <div class="app">
     <!-- ================= Header ================= -->
     <header>
       <h1>AutoTrack Liquidity</h1>
-      <p class="subtitle">Beta · Read-Only · Non-Custodial · Ethereum Mainnet</p>
+      <p class="subtitle">Standalone Beta · Read-Only · Non-Custodial</p>
+      <div class="principles">
+        <span class="principle-badge">🔒 Read-Only</span>
+        <span class="principle-badge">✍️ No Signatures</span>
+        <span class="principle-badge">⛓️ On-Chain Truth</span>
+        <span class="principle-badge">🤖 Automation-First</span>
+      </div>
     </header>
 
-    <!-- ================= Connection Status ================= -->
+    <!-- ================= Wallet Card ================= -->
     <div class="card">
-      <div class="card-header">
-        <h2 class="card-title">Connection Status</h2>
-        <p class="card-subtitle">Read-only access • No signatures required</p>
-      </div>
+      <h3 class="card-title">
+        Wallet Connection
+        <span class="card-badge" id="connectionBadge" style="display: none;">Connected</span>
+      </h3>
       
-      <button id="connectBtn">
-        <span>Connect MetaMask Wallet</span>
-      </button>
+      <button id="connectBtn">Connect Wallet (MetaMask)</button>
 
-      <div class="status-grid">
+      <div class="status" id="statusSection" style="display: none;">
         <div class="status-item">
-          <span class="status-label">Wallet</span>
-          <span id="wallet" class="status-value">Not connected</span>
+          <span class="status-label">Wallet Address</span>
+          <span class="status-value" id="wallet">–</span>
         </div>
         <div class="status-item">
           <span class="status-label">Network</span>
-          <span id="chain" class="status-value">–</span>
+          <span class="status-value" id="chain">–</span>
         </div>
         <div class="status-item">
           <span class="status-label">ETH Balance</span>
-          <span id="balance" class="status-value">–</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Mode</span>
-          <span class="status-value tag read-only">Read-Only</span>
+          <span class="status-value" id="balance">–</span>
         </div>
       </div>
     </div>
 
     <!-- ================= Transactions Card ================= -->
     <div class="card">
-      <div class="card-header">
-        <h2 class="card-title">On-Chain Activity</h2>
-        <p class="card-subtitle">Automatically reconstructed from blockchain data</p>
-      </div>
-      
-      <div class="activity-summary">
-        <div class="summary-item">
-          <span>Supported Activities:</span>
-          <div class="tags">
-            <span class="tag">ETH Transfers</span>
-            <span class="tag">Internal TXs</span>
-            <span class="tag">ERC-20</span>
-            <span class="tag">NFTs</span>
-          </div>
-        </div>
-      </div>
+      <h3 class="card-title">
+        Transaction History
+        <span class="card-badge" style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #93c5fd;">Ethereum Mainnet</span>
+      </h3>
 
-      <div class="transactions-container">
-        <h3>Recent Transactions</h3>
-        <ul id="txList" class="tx-list">
-          <li class="muted">Connect a wallet to load on-chain activity</li>
-        </ul>
-      </div>
+      <ul id="txList" class="tx-list">
+        <li class="muted">Connect your wallet to view on-chain transaction history</li>
+      </ul>
     </div>
 
-    <!-- ================= Platform Info ================= -->
-    <div class="card info-card">
-      <h2 class="card-title">About AutoTrack Liquidity</h2>
-      <div class="info-content">
-        <div class="info-item">
-          <h4>Core Principles</h4>
-          <ul>
-            <li>Read-only access only</li>
-            <li>No signatures required</li>
-            <li>On-chain source of truth</li>
-            <li>Automation-first approach</li>
-          </ul>
-        </div>
-        <div class="info-item">
-          <h4>Current Scope</h4>
-          <ul>
-            <li>MetaMask wallet connection</li>
-            <li>Ethereum Mainnet support</li>
-            <li>Full transaction visibility</li>
-            <li>Chain detection & safety guards</li>
-          </ul>
-        </div>
-      </div>
+    <!-- ================= Info Panel ================= -->
+    <div class="info-panel">
+      <h3>📊 Current Scope (Phase 2)</h3>
+      <p>
+        <strong>✅ Implemented:</strong> Wallet connection via MetaMask · Chain detection & safety guards · 
+        Full transaction visibility (ETH, Internal, ERC-20, NFT) · Ethereum Mainnet support
+      </p>
+      <p style="margin-top: 12px;">
+        <strong>🚧 Coming Next:</strong> Phase 3 - LP Signal Extraction · Phase 4 - Position Modeling & PnL · 
+        Phase 5 - Automation Engine
+      </p>
     </div>
-
-    <!-- ================= Debug Panel ================= -->
-    <details class="debug-panel">
-      <summary>Debug Information</summary>
-      <div class="debug-content">
-        <h3>System Status</h3>
-        <p id="debugStatus">Waiting for JavaScript initialization…</p>
-        <div class="debug-grid">
-          <div>
-            <strong>API Status:</strong> <span id="apiStatus">Not connected</span>
-          </div>
-          <div>
-            <strong>TX Limit:</strong> <span id="txLimit">25 per category</span>
-          </div>
-          <div>
-            <strong>Mode:</strong> <span class="tag">Standalone Beta</span>
-          </div>
-        </div>
-      </div>
-    </details>
   </div>
 
   <script src="script.js"></script>
