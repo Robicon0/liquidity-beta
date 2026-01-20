@@ -1,264 +1,386 @@
-console.log("AutoTrack Liquidity – Enhanced Beta Loaded");
+console.log("🚀 AutoTrack Liquidity Premium - Initialized");
 
 /* ================================
-   CONFIG
+   CHAIN CONFIGURATION
 ================================ */
-const ETHERSCAN_API_KEY = "7985AZCNWY5J9K4PB84WR4APQ4UBAPEPCH";
+const CHAINS = {
+  ethereum: {
+    id: '0x1',
+    name: 'Ethereum Mainnet',
+    symbol: 'ETH',
+    explorer: 'https://api.etherscan.io/api',
+    apiKey: '7985AZCNWY5J9K4PB84WR4APQ4UBAPEPCH'
+  },
+  polygon: {
+    id: '0x89',
+    name: 'Polygon',
+    symbol: 'MATIC',
+    explorer: 'https://api.polygonscan.com/api',
+    apiKey: 'YourPolygonAPIKey' // Replace with your Polygon API key
+  },
+  base: {
+    id: '0x2105',
+    name: 'Base',
+    symbol: 'ETH',
+    explorer: 'https://api.basescan.org/api',
+    apiKey: 'YourBaseAPIKey' // Replace with your Base API key
+  },
+  arbitrum: {
+    id: '0xa4b1',
+    name: 'Arbitrum One',
+    symbol: 'ETH',
+    explorer: 'https://api.arbiscan.io/api',
+    apiKey: 'YourArbitrumAPIKey' // Replace with your Arbitrum API key
+  },
+  optimism: {
+    id: '0xa',
+    name: 'Optimism',
+    symbol: 'ETH',
+    explorer: 'https://api-optimistic.etherscan.io/api',
+    apiKey: 'YourOptimismAPIKey' // Replace with your Optimism API key
+  }
+};
+
 const TX_LIMIT = 25;
-const ETHEREUM_MAINNET = "0x1";
-
-/* ================================
-   STATE
-================================ */
-let txListEl = null;
+let currentChain = 'ethereum';
 let currentAddress = null;
 
 /* ================================
-   HELPERS
+   DOM ELEMENTS CACHE
+================================ */
+const el = {
+  connectBtn: document.getElementById('connectBtn'),
+  btnText: document.getElementById('btnText'),
+  statusGrid: document.getElementById('statusGrid'),
+  connectionBadge: document.getElementById('connectionBadge'),
+  walletAddress: document.getElementById('walletAddress'),
+  networkName: document.getElementById('networkName'),
+  balance: document.getElementById('balance'),
+  txList: document.getElementById('txList'),
+  chainBadge: document.getElementById('chainBadge'),
+  alertContainer: document.getElementById('alertContainer')
+};
+
+/* ================================
+   BACKGROUND PARTICLES
+================================ */
+function createParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 15; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    particle.style.width = Math.random() * 150 + 50 + 'px';
+    particle.style.height = particle.style.width;
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.top = Math.random() * 100 + '%';
+    particle.style.animationDelay = Math.random() * 20 + 's';
+    particle.style.animationDuration = (Math.random() * 20 + 15) + 's';
+    container.appendChild(particle);
+  }
+}
+
+/* ================================
+   ALERT SYSTEM
+================================ */
+function showAlert(message, type = 'info') {
+  const alert = document.createElement('div');
+  alert.className = `alert ${type}`;
+  alert.innerHTML = `
+    <span>${type === 'error' ? '⚠️' : type === 'warning' ? '⚡' : 'ℹ️'}</span>
+    <span>${message}</span>
+  `;
+  el.alertContainer.appendChild(alert);
+  setTimeout(() => alert.remove(), 5000);
+}
+
+/* ================================
+   HELPER FUNCTIONS
 ================================ */
 function shorten(str) {
-  if (!str) return "–";
-  return str.slice(0, 6) + "…" + str.slice(-4);
+  return str ? str.slice(0, 6) + '…' + str.slice(-4) : '–';
 }
 
 function formatTime(unix) {
   const date = new Date(unix * 1000);
-  return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
 function direction(from, address) {
-  return from.toLowerCase() === address.toLowerCase() ? "out" : "in";
-}
-
-function safeInsert(html) {
-  if (!txListEl) return;
-  txListEl.insertAdjacentHTML("beforeend", html);
-}
-
-function clearTxList(message) {
-  if (!txListEl) return;
-  txListEl.innerHTML = `<li class="muted">${message}</li>`;
+  return from.toLowerCase() === address.toLowerCase() ? 'out' : 'in';
 }
 
 /* ================================
-   RENDER HELPERS
+   RENDER FUNCTIONS
 ================================ */
+function clearTxList(message = '') {
+  el.txList.innerHTML = message 
+    ? `<li class="tx-item muted">${message}</li>` 
+    : '';
+}
+
+function addTxItem(html) {
+  el.txList.insertAdjacentHTML('beforeend', html);
+}
+
 function renderSection(title) {
-  safeInsert(`<li class="section-header">${title}</li>`);
+  addTxItem(`<li class="tx-item section">${title}</li>`);
 }
 
-function renderPlaceholder(text, isLoading = false) {
-  const loadingSpinner = isLoading ? '<span class="loading"></span>' : '';
-  safeInsert(`<li class="muted">${text}${loadingSpinner}</li>`);
+function renderLoading(text) {
+  addTxItem(`<li class="tx-item muted">${text}<span class="spinner"></span></li>`);
 }
 
-function renderTx(label, dir, desc, ts) {
-  safeInsert(`
-    <li class="${dir}">
+function renderTx(label, dir, desc, timestamp) {
+  addTxItem(`
+    <li class="tx-item ${dir}">
       <div class="tx-content">
         <div class="tx-label">${label}</div>
         <div class="tx-desc">${desc}</div>
       </div>
-      <div class="tx-time">${formatTime(ts)}</div>
+      <div class="tx-time">${formatTime(timestamp)}</div>
     </li>
   `);
 }
 
 /* ================================
-   API FETCH
+   API FETCH FUNCTIONS
 ================================ */
-async function fetchAndRender({ title, url, parser, address }) {
-  renderSection(title);
-  renderPlaceholder("Loading", true);
+async function fetchTransactions(type, address) {
+  const chain = CHAINS[currentChain];
+  const actions = {
+    normal: 'txlist',
+    internal: 'txlistinternal',
+    token: 'tokentx',
+    nft: 'tokennfttx'
+  };
+
+  const url = `${chain.explorer}?module=account&action=${actions[type]}&address=${address}&page=1&offset=${TX_LIMIT}&sort=desc&apikey=${chain.apiKey}`;
 
   try {
-    const res = await fetch(url);
-    const data = await res.json();
+    const response = await fetch(url);
+    const data = await response.json();
 
-    // Remove loading placeholder
-    txListEl.lastElementChild?.remove();
-
-    if (data.status !== "1" || !Array.isArray(data.result) || !data.result.length) {
-      renderPlaceholder("No transactions found");
-      return;
+    if (data.status !== '1' || !Array.isArray(data.result) || !data.result.length) {
+      return [];
     }
 
-    data.result.forEach((tx) => parser(tx, address));
-  } catch (err) {
-    console.error(`${title} error:`, err);
-    txListEl.lastElementChild?.remove();
-    renderPlaceholder("Failed to load data");
+    return data.result;
+  } catch (error) {
+    console.error(`Error fetching ${type} transactions:`, error);
+    return [];
   }
 }
 
-/* ================================
-   FETCH ALL TRANSACTIONS
-================================ */
-function fetchAllTransactions(address) {
-  clearTxList("Fetching on-chain data from Ethereum...");
-  currentAddress = address;
+async function loadAllTransactions(address) {
+  clearTxList('Fetching on-chain data from blockchain...');
+  const chain = CHAINS[currentChain];
 
-  // Normal ETH Transactions
-  fetchAndRender({
-    title: "📤 Normal ETH Transactions",
-    address,
-    url: `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&page=1&offset=${TX_LIMIT}&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parser: (tx, addr) => {
+  // Normal Transactions
+  renderSection(`📤 ${chain.symbol} Transactions`);
+  renderLoading('Loading');
+  const normalTxs = await fetchTransactions('normal', address);
+  el.txList.lastElementChild?.remove();
+  
+  if (normalTxs.length === 0) {
+    addTxItem('<li class="tx-item muted">No transactions found</li>');
+  } else {
+    normalTxs.forEach(tx => {
       const value = (parseFloat(tx.value) / 1e18).toFixed(6);
       renderTx(
-        "ETH Transfer",
-        direction(tx.from, addr),
-        `${shorten(tx.hash)} · ${value} ETH`,
+        `${chain.symbol} Transfer`,
+        direction(tx.from, address),
+        `${shorten(tx.hash)} · ${value} ${chain.symbol}`,
         tx.timeStamp
       );
-    },
-  });
+    });
+  }
 
-  // Internal ETH Transactions
-  fetchAndRender({
-    title: "🔄 Internal ETH Transactions",
-    address,
-    url: `https://api.etherscan.io/api?module=account&action=txlistinternal&address=${address}&page=1&offset=${TX_LIMIT}&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parser: (tx, addr) => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  // Internal Transactions
+  renderSection('🔄 Internal Transactions');
+  renderLoading('Loading');
+  const internalTxs = await fetchTransactions('internal', address);
+  el.txList.lastElementChild?.remove();
+  
+  if (internalTxs.length === 0) {
+    addTxItem('<li class="tx-item muted">No transactions found</li>');
+  } else {
+    internalTxs.forEach(tx => {
       const value = (parseFloat(tx.value) / 1e18).toFixed(6);
       renderTx(
-        "Internal ETH",
-        direction(tx.from, addr),
-        `${shorten(tx.hash)} · ${value} ETH`,
+        'Internal',
+        direction(tx.from, address),
+        `${shorten(tx.hash)} · ${value} ${chain.symbol}`,
         tx.timeStamp
       );
-    },
-  });
+    });
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   // ERC-20 Token Transfers
-  fetchAndRender({
-    title: "🪙 ERC-20 Token Transfers",
-    address,
-    url: `https://api.etherscan.io/api?module=account&action=tokentx&address=${address}&page=1&offset=${TX_LIMIT}&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parser: (tx, addr) => {
+  renderSection('🪙 ERC-20 Token Transfers');
+  renderLoading('Loading');
+  const tokenTxs = await fetchTransactions('token', address);
+  el.txList.lastElementChild?.remove();
+  
+  if (tokenTxs.length === 0) {
+    addTxItem('<li class="tx-item muted">No transactions found</li>');
+  } else {
+    tokenTxs.forEach(tx => {
       const value = (tx.value / 10 ** tx.tokenDecimal).toFixed(4);
       renderTx(
-        tx.tokenSymbol || "Token",
-        direction(tx.from, addr),
+        tx.tokenSymbol || 'Token',
+        direction(tx.from, address),
         `${value} ${tx.tokenSymbol}`,
         tx.timeStamp
       );
-    },
-  });
+    });
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   // NFT Transfers
-  fetchAndRender({
-    title: "🖼️ NFT Transfers (ERC-721/1155)",
-    address,
-    url: `https://api.etherscan.io/api?module=account&action=tokennfttx&address=${address}&page=1&offset=${TX_LIMIT}&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parser: (tx, addr) => {
+  renderSection('🖼️ NFT Transfers (ERC-721/1155)');
+  renderLoading('Loading');
+  const nftTxs = await fetchTransactions('nft', address);
+  el.txList.lastElementChild?.remove();
+  
+  if (nftTxs.length === 0) {
+    addTxItem('<li class="tx-item muted">No transactions found</li>');
+  } else {
+    nftTxs.forEach(tx => {
       renderTx(
-        tx.tokenSymbol || "NFT",
-        direction(tx.from, addr),
+        tx.tokenSymbol || 'NFT',
+        direction(tx.from, address),
         `Token ID #${tx.tokenID}`,
         tx.timeStamp
       );
-    },
-  });
+    });
+  }
 }
 
 /* ================================
    WALLET CONNECTION
 ================================ */
 async function connectWallet() {
-  const connectBtn = document.getElementById("connectBtn");
-  const walletEl = document.getElementById("wallet");
-  const chainEl = document.getElementById("chain");
-  const balanceEl = document.getElementById("balance");
-  const statusSection = document.getElementById("statusSection");
-  const connectionBadge = document.getElementById("connectionBadge");
-
-  // Check if MetaMask is installed
   if (!window.ethereum) {
-    alert("MetaMask is not installed. Please install MetaMask to use AutoTrack Liquidity.");
+    showAlert('MetaMask not detected. Please install MetaMask to continue.', 'error');
     return;
   }
 
   try {
-    connectBtn.disabled = true;
-    connectBtn.textContent = "Connecting...";
+    el.btnText.innerHTML = 'Connecting...<span class="spinner"></span>';
+    el.connectBtn.disabled = true;
 
     // Request account access
     const accounts = await window.ethereum.request({ 
-      method: "eth_requestAccounts" 
+      method: 'eth_requestAccounts' 
     });
     const account = accounts[0];
 
-    // Get chain ID
+    // Get current chain ID
     const chainId = await window.ethereum.request({ 
-      method: "eth_chainId" 
+      method: 'eth_chainId' 
     });
+    
+    const chain = CHAINS[currentChain];
 
-    // Validate Ethereum Mainnet
-    if (chainId !== ETHEREUM_MAINNET) {
-      alert("Please switch to Ethereum Mainnet in MetaMask.");
-      clearTxList("⚠️ Ethereum Mainnet required. Please switch networks in MetaMask.");
-      connectBtn.disabled = false;
-      connectBtn.textContent = "Connect Wallet (MetaMask)";
+    // Validate chain
+    if (chainId !== chain.id) {
+      showAlert(`Please switch to ${chain.name} in MetaMask`, 'warning');
+      el.btnText.textContent = 'Wrong Network';
+      el.connectBtn.disabled = false;
+      clearTxList(`⚠️ Please switch to ${chain.name} in your wallet`);
       return;
     }
 
     // Get balance
-    const bal = await window.ethereum.request({
-      method: "eth_getBalance",
-      params: [account, "latest"],
+    const balance = await window.ethereum.request({
+      method: 'eth_getBalance',
+      params: [account, 'latest']
     });
 
     // Update UI
-    walletEl.textContent = shorten(account);
-    chainEl.textContent = "Ethereum Mainnet";
-    balanceEl.textContent = (parseInt(bal, 16) / 1e18).toFixed(6) + " ETH";
+    el.walletAddress.textContent = shorten(account);
+    el.networkName.textContent = chain.name;
+    el.balance.textContent = (parseInt(balance, 16) / 1e18).toFixed(6) + ' ' + chain.symbol;
     
-    statusSection.style.display = "grid";
-    connectionBadge.style.display = "inline-block";
-    connectBtn.textContent = "Connected";
-    connectBtn.disabled = true;
+    el.statusGrid.classList.remove('hidden');
+    el.connectionBadge.classList.remove('hidden');
+    el.btnText.textContent = 'Connected';
+    el.connectBtn.disabled = true;
 
-    // Fetch transactions
-    fetchAllTransactions(account);
+    currentAddress = account;
+    
+    // Load transactions
+    await loadAllTransactions(account);
 
-  } catch (err) {
-    console.error("Connection error:", err);
-    alert("Failed to connect wallet. Please try again.");
-    connectBtn.disabled = false;
-    connectBtn.textContent = "Connect Wallet (MetaMask)";
+    showAlert('Wallet connected successfully!', 'info');
+
+  } catch (error) {
+    console.error('Connection error:', error);
+    showAlert('Failed to connect wallet: ' + error.message, 'error');
+    el.btnText.textContent = 'Connect Wallet';
+    el.connectBtn.disabled = false;
   }
+}
+
+/* ================================
+   CHAIN SWITCHING
+================================ */
+document.querySelectorAll('.chain-btn').forEach(button => {
+  button.addEventListener('click', () => {
+    // Update active state
+    document.querySelectorAll('.chain-btn').forEach(btn => 
+      btn.classList.remove('active')
+    );
+    button.classList.add('active');
+    
+    // Update current chain
+    currentChain = button.dataset.chain;
+    el.chainBadge.textContent = CHAINS[currentChain].name;
+    
+    // Reset connection state if wallet was connected
+    if (currentAddress) {
+      el.statusGrid.classList.add('hidden');
+      el.connectionBadge.classList.add('hidden');
+      el.btnText.textContent = 'Connect Wallet';
+      el.connectBtn.disabled = false;
+      clearTxList('Please reconnect your wallet for the selected chain');
+      currentAddress = null;
+      showAlert(`Switched to ${CHAINS[currentChain].name}. Please reconnect.`, 'info');
+    }
+  });
+});
+
+/* ================================
+   EVENT LISTENERS
+================================ */
+el.connectBtn.addEventListener('click', connectWallet);
+
+// Listen for account/chain changes
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', (accounts) => {
+    if (accounts.length === 0) {
+      showAlert('Wallet disconnected', 'warning');
+    }
+    location.reload();
+  });
+
+  window.ethereum.on('chainChanged', () => {
+    location.reload();
+  });
 }
 
 /* ================================
    INITIALIZATION
 ================================ */
-document.addEventListener("DOMContentLoaded", () => {
-  txListEl = document.getElementById("txList");
-
-  if (!txListEl) {
-    console.error("Transaction list element not found");
-    return;
-  }
-
-  const connectBtn = document.getElementById("connectBtn");
-  if (connectBtn) {
-    connectBtn.onclick = connectWallet;
-  }
-
-  // Listen for account/chain changes
-  if (window.ethereum) {
-    window.ethereum.on("accountsChanged", (accounts) => {
-      if (accounts.length > 0 && currentAddress) {
-        location.reload();
-      }
-    });
-
-    window.ethereum.on("chainChanged", () => {
-      location.reload();
-    });
-  }
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ AutoTrack Liquidity loaded successfully');
+  createParticles();
 });

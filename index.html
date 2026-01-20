@@ -2,71 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AutoTrack Liquidity – Beta</title>
+  <title>AutoTrack Liquidity - Premium Edition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
-    <!-- ================= Header ================= -->
-    <header>
-      <h1>AutoTrack Liquidity</h1>
-      <p class="subtitle">Standalone Beta · Read-Only · Non-Custodial</p>
+  <div class="bg-particles" id="particles"></div>
+
+  <div class="container">
+    <header class="header">
+      <div style="position: relative; display: inline-block;">
+        <div class="logo-glow"></div>
+        <h1>AutoTrack Liquidity</h1>
+      </div>
+      <p class="subtitle">Premium Multi-Chain Analytics · Read-Only · Non-Custodial</p>
       <div class="principles">
-        <span class="principle-badge">🔒 Read-Only</span>
-        <span class="principle-badge">✍️ No Signatures</span>
-        <span class="principle-badge">⛓️ On-Chain Truth</span>
-        <span class="principle-badge">🤖 Automation-First</span>
+        <span class="badge">🔒 Read-Only</span>
+        <span class="badge">✍️ No Signatures</span>
+        <span class="badge">⛓️ On-Chain Truth</span>
+        <span class="badge">🤖 Automation-First</span>
       </div>
     </header>
 
-    <!-- ================= Wallet Card ================= -->
-    <div class="card">
-      <h3 class="card-title">
-        Wallet Connection
-        <span class="card-badge" id="connectionBadge" style="display: none;">Connected</span>
-      </h3>
-      
-      <button id="connectBtn">Connect Wallet (MetaMask)</button>
+    <div class="chain-selector">
+      <button class="chain-btn active" data-chain="ethereum">⟠ Ethereum</button>
+      <button class="chain-btn" data-chain="polygon">⬡ Polygon</button>
+      <button class="chain-btn" data-chain="base">🔵 Base</button>
+      <button class="chain-btn" data-chain="arbitrum">◆ Arbitrum</button>
+      <button class="chain-btn" data-chain="optimism">○ Optimism</button>
+    </div>
 
-      <div class="status" id="statusSection" style="display: none;">
+    <div id="alertContainer"></div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Wallet Connection</h2>
+        <span class="status-badge hidden" id="connectionBadge">Connected</span>
+      </div>
+      
+      <button class="connect-btn" id="connectBtn">
+        <span id="btnText">Connect Wallet</span>
+      </button>
+
+      <div class="status-grid hidden" id="statusGrid">
         <div class="status-item">
           <span class="status-label">Wallet Address</span>
-          <span class="status-value" id="wallet">–</span>
+          <span class="status-value" id="walletAddress">–</span>
         </div>
         <div class="status-item">
           <span class="status-label">Network</span>
-          <span class="status-value" id="chain">–</span>
+          <span class="status-value" id="networkName">–</span>
         </div>
         <div class="status-item">
-          <span class="status-label">ETH Balance</span>
+          <span class="status-label">Balance</span>
           <span class="status-value" id="balance">–</span>
         </div>
       </div>
     </div>
 
-    <!-- ================= Transactions Card ================= -->
     <div class="card">
-      <h3 class="card-title">
-        Transaction History
-        <span class="card-badge" style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #93c5fd;">Ethereum Mainnet</span>
-      </h3>
-
-      <ul id="txList" class="tx-list">
-        <li class="muted">Connect your wallet to view on-chain transaction history</li>
+      <div class="card-header">
+        <h2 class="card-title">Transaction History</h2>
+        <span class="status-badge" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #93c5fd;" id="chainBadge">Ethereum</span>
+      </div>
+      
+      <ul class="tx-list" id="txList">
+        <li class="tx-item muted">Connect your wallet to view transaction history</li>
       </ul>
     </div>
 
-    <!-- ================= Info Panel ================= -->
     <div class="info-panel">
       <h3>📊 Current Scope (Phase 2)</h3>
       <p>
-        <strong>✅ Implemented:</strong> Wallet connection via MetaMask · Chain detection & safety guards · 
-        Full transaction visibility (ETH, Internal, ERC-20, NFT) · Ethereum Mainnet support
+        <strong>✅ Implemented:</strong> Multi-chain support (Ethereum, Polygon, Base, Arbitrum, Optimism) · 
+        Wallet connection via MetaMask · Chain detection & safety guards · 
+        Full transaction visibility (Native, Internal, ERC-20, NFT)
       </p>
-      <p style="margin-top: 12px;">
-        <strong>🚧 Coming Next:</strong> Phase 3 - LP Signal Extraction · Phase 4 - Position Modeling & PnL · 
-        Phase 5 - Automation Engine
+      <p>
+        <strong>🚧 Coming Next:</strong> Phase 3 - LP Signal Extraction · 
+        Phase 4 - Position Modeling & PnL · Phase 5 - Automation Engine
       </p>
     </div>
   </div>
