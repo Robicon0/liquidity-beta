@@ -1,9 +1,10 @@
 console.log("AutoTrack Liquidity – JS loaded");
 
 /* ================================
-   Config
+   CONFIG
 ================================ */
 
+// ⚠️ KEEP YOUR API KEY EXACTLY AS YOU HAVE IT
 const ETHERSCAN_API_KEY = "7985AZCNWY5J9K4PB84WR4APQ4UBAPEPCH";
 const TX_LIMIT = 10;
 
@@ -17,7 +18,7 @@ const CHAIN_MAP = {
 const SUPPORTED_CHAINS = Object.keys(CHAIN_MAP);
 
 /* ================================
-   Helpers
+   HELPERS
 ================================ */
 
 function isSupportedChain(chainId) {
@@ -34,11 +35,13 @@ function formatTime(unix) {
 
 function resetTxList(message) {
   const txList = document.getElementById("txList");
-  txList.innerHTML = `<li class="muted">${message}</li>`;
+  if (txList) {
+    txList.innerHTML = `<li class="muted">${message}</li>`;
+  }
 }
 
 /* ================================
-   Fetch Transactions (Ethereum)
+   FETCH TRANSACTIONS (ETHERSCAN)
 ================================ */
 
 async function fetchTransactions(address) {
@@ -60,8 +63,16 @@ async function fetchTransactions(address) {
     const res = await fetch(url);
     const data = await res.json();
 
-    if (!data.result || data.result.length === 0) {
-      resetTxList("No transactions found");
+    console.log("Etherscan response:", data);
+
+    // 🔴 Explicit error handling
+    if (data.status !== "1") {
+      resetTxList(`Etherscan: ${data.message || "Error"}`);
+      return;
+    }
+
+    if (!Array.isArray(data.result) || data.result.length === 0) {
+      resetTxList("No normal ETH transactions found");
       return;
     }
 
@@ -86,13 +97,13 @@ async function fetchTransactions(address) {
     });
 
   } catch (err) {
-    console.error(err);
-    resetTxList("Failed to load transactions");
+    console.error("Transaction fetch failed:", err);
+    resetTxList("Failed to fetch transactions");
   }
 }
 
 /* ================================
-   Wallet Logic
+   WALLET LOGIC
 ================================ */
 
 async function connectWallet(state) {
@@ -111,7 +122,7 @@ async function connectWallet(state) {
       method: "eth_requestAccounts",
     });
 
-    if (!accounts.length) {
+    if (!accounts || !accounts.length) {
       debugEl.textContent = "No wallet connected.";
       return;
     }
@@ -131,11 +142,12 @@ async function connectWallet(state) {
 
     chainEl.textContent = chainName;
 
+    // 🔒 Phase 2.1 scope lock
     if (chainId !== "0x1") {
+      balanceEl.textContent = "–";
       debugEl.textContent =
         "Transaction view available only on Ethereum (for now).";
-      balanceEl.textContent = "–";
-      resetTxList("Switch to Ethereum to view transactions");
+      resetTxList("Switch to Ethereum Mainnet to view transactions");
       return;
     }
 
@@ -144,21 +156,21 @@ async function connectWallet(state) {
       params: [account, "latest"],
     });
 
-    balanceEl.textContent =
-      (parseInt(balance, 16) / 1e18).toFixed(4) + " ETH";
+    const ethBalance = parseInt(balance, 16) / 1e18;
+    balanceEl.textContent = ethBalance.toFixed(6) + " ETH";
 
     debugEl.textContent = "Wallet connected. Fetching transactions…";
 
     fetchTransactions(account);
 
   } catch (err) {
-    console.error(err);
+    console.error("Wallet connection error:", err);
     debugEl.textContent = "Wallet connection failed.";
   }
 }
 
 /* ================================
-   Bootstrap + Live Events
+   BOOTSTRAP + LIVE EVENTS
 ================================ */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -180,6 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   state.connectBtn.onclick = () => connectWallet(state);
 
+  // 🔄 Live wallet reactivity (Phase 1.3 preserved)
   window.ethereum.on("accountsChanged", () => connectWallet(state));
   window.ethereum.on("chainChanged", () => connectWallet(state));
 });
