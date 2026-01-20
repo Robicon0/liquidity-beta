@@ -3,27 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <title>AutoTrack Liquidity – Beta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <div class="app">
+    <!-- ================= Header ================= -->
     <h1>AutoTrack Liquidity</h1>
-    <p class="subtitle">Standalone Beta – Read-Only</p>
+    <p class="subtitle">Standalone Beta · Read-Only · Ethereum</p>
 
+    <!-- ================= Wallet Card ================= -->
     <div class="card">
       <button id="connectBtn">
         Connect Wallet
-      </button>      
+      </button>
 
       <div class="status">
-        <p><strong>Wallet:</strong> <span id="wallet">Not connected</span></p>
-        <p><strong>Chain:</strong> <span id="chain">–</span></p>
-        <p><strong>Balance:</strong> <span id="balance">–</span></p>
+        <p>
+          <strong>Wallet</strong>
+          <span id="wallet">Not connected</span>
+        </p>
+        <p>
+          <strong>Chain</strong>
+          <span id="chain">–</span>
+        </p>
+        <p>
+          <strong>Balance</strong>
+          <span id="balance">–</span>
+        </p>
       </div>
-      
     </div>
 
+    <!-- ================= Transactions Card ================= -->
+    <div class="card">
+      <h3 class="card-title">Recent Transactions</h3>
+
+      <ul id="txList" class="tx-list">
+        <li class="muted">Connect a wallet to load transactions</li>
+      </ul>
+    </div>
+
+    <!-- ================= Debug ================= -->
     <div class="debug">
       <h3>Debug Panel</h3>
       <p>Waiting for JavaScript…</p>
@@ -33,4 +54,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-

@@ -4,8 +4,8 @@
 
 * {
   box-sizing: border-box;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Inter, Roboto, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Inter, Roboto, sans-serif;
 }
 
 body {
@@ -65,6 +65,13 @@ h1 {
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.card-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #c7d2fe;
 }
 
 /* ================================
@@ -143,6 +150,44 @@ button:disabled {
 .status span {
   font-weight: 500;
   color: #f8fafc;
+}
+
+/* ================================
+   Transactions List
+================================ */
+
+.tx-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tx-list li {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tx-list li.in {
+  border-left: 3px solid #22c55e;
+}
+
+.tx-list li.out {
+  border-left: 3px solid #ef4444;
+}
+
+.tx-list li span {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.tx-list .muted {
+  color: #6b7280;
 }
 
 /* ================================
