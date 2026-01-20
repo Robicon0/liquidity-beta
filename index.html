@@ -4,51 +4,120 @@
   <meta charset="UTF-8" />
   <title>AutoTrack Liquidity – Beta</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Read-only, non-custodial analytics platform for tracking DeFi liquidity positions directly from on-chain data." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <div class="app">
     <!-- ================= Header ================= -->
-    <h1>AutoTrack Liquidity</h1>
-    <p class="subtitle">Standalone Beta · Read-Only · Ethereum</p>
+    <header>
+      <h1>AutoTrack Liquidity</h1>
+      <p class="subtitle">Beta · Read-Only · Non-Custodial · Ethereum Mainnet</p>
+    </header>
 
-    <!-- ================= Wallet Card ================= -->
+    <!-- ================= Connection Status ================= -->
     <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Connection Status</h2>
+        <p class="card-subtitle">Read-only access • No signatures required</p>
+      </div>
+      
       <button id="connectBtn">
-        Connect Wallet
+        <span>Connect MetaMask Wallet</span>
       </button>
 
-      <div class="status">
-        <p>
-          <strong>Wallet</strong>
-          <span id="wallet">Not connected</span>
-        </p>
-        <p>
-          <strong>Chain</strong>
-          <span id="chain">–</span>
-        </p>
-        <p>
-          <strong>Balance</strong>
-          <span id="balance">–</span>
-        </p>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">Wallet</span>
+          <span id="wallet" class="status-value">Not connected</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Network</span>
+          <span id="chain" class="status-value">–</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">ETH Balance</span>
+          <span id="balance" class="status-value">–</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Mode</span>
+          <span class="status-value tag read-only">Read-Only</span>
+        </div>
       </div>
     </div>
 
     <!-- ================= Transactions Card ================= -->
     <div class="card">
-      <h3 class="card-title">Recent Transactions</h3>
+      <div class="card-header">
+        <h2 class="card-title">On-Chain Activity</h2>
+        <p class="card-subtitle">Automatically reconstructed from blockchain data</p>
+      </div>
+      
+      <div class="activity-summary">
+        <div class="summary-item">
+          <span>Supported Activities:</span>
+          <div class="tags">
+            <span class="tag">ETH Transfers</span>
+            <span class="tag">Internal TXs</span>
+            <span class="tag">ERC-20</span>
+            <span class="tag">NFTs</span>
+          </div>
+        </div>
+      </div>
 
-      <ul id="txList" class="tx-list">
-        <li class="muted">Connect a wallet to load transactions</li>
-      </ul>
+      <div class="transactions-container">
+        <h3>Recent Transactions</h3>
+        <ul id="txList" class="tx-list">
+          <li class="muted">Connect a wallet to load on-chain activity</li>
+        </ul>
+      </div>
     </div>
 
-    <!-- ================= Debug ================= -->
-    <div class="debug">
-      <h3>Debug Panel</h3>
-      <p>Waiting for JavaScript…</p>
+    <!-- ================= Platform Info ================= -->
+    <div class="card info-card">
+      <h2 class="card-title">About AutoTrack Liquidity</h2>
+      <div class="info-content">
+        <div class="info-item">
+          <h4>Core Principles</h4>
+          <ul>
+            <li>Read-only access only</li>
+            <li>No signatures required</li>
+            <li>On-chain source of truth</li>
+            <li>Automation-first approach</li>
+          </ul>
+        </div>
+        <div class="info-item">
+          <h4>Current Scope</h4>
+          <ul>
+            <li>MetaMask wallet connection</li>
+            <li>Ethereum Mainnet support</li>
+            <li>Full transaction visibility</li>
+            <li>Chain detection & safety guards</li>
+          </ul>
+        </div>
+      </div>
     </div>
+
+    <!-- ================= Debug Panel ================= -->
+    <details class="debug-panel">
+      <summary>Debug Information</summary>
+      <div class="debug-content">
+        <h3>System Status</h3>
+        <p id="debugStatus">Waiting for JavaScript initialization…</p>
+        <div class="debug-grid">
+          <div>
+            <strong>API Status:</strong> <span id="apiStatus">Not connected</span>
+          </div>
+          <div>
+            <strong>TX Limit:</strong> <span id="txLimit">25 per category</span>
+          </div>
+          <div>
+            <strong>Mode:</strong> <span class="tag">Standalone Beta</span>
+          </div>
+        </div>
+      </div>
+    </details>
   </div>
 
   <script src="script.js"></script>
