@@ -9,6 +9,12 @@ const ETHERSCAN_API_KEY = "7985AZCNWY5J9K4PB84WR4APQ4UBAPEPCH";
 const TX_LIMIT = 25;
 
 /* ================================
+   STATE (DOM CACHE)
+================================ */
+
+let txListEl = null;
+
+/* ================================
    HELPERS
 ================================ */
 
@@ -20,90 +26,84 @@ function formatTime(unix) {
   return new Date(unix * 1000).toLocaleString();
 }
 
-function txDirection(from, address) {
+function direction(from, address) {
   return from.toLowerCase() === address.toLowerCase() ? "out" : "in";
 }
 
-function sectionHeader(title) {
-  return `
-    <li class="muted" style="font-weight:600;margin-top:12px;">
-      ${title}
-    </li>
-  `;
+function safeInsert(html) {
+  if (!txListEl) return;
+  txListEl.insertAdjacentHTML("beforeend", html);
 }
 
-function placeholder(text) {
-  return `<li class="muted">${text}</li>`;
-}
-
-function renderTx(label, direction, description, timestamp) {
-  return `
-    <li class="${direction}">
-      <div>
-        <strong>${label}</strong><br/>
-        <span>${description}</span>
-      </div>
-      <span>${formatTime(timestamp)}</span>
-    </li>
-  `;
+function clearTxList(message) {
+  if (!txListEl) return;
+  txListEl.innerHTML = `<li class="muted">${message}</li>`;
 }
 
 /* ================================
-   FETCHERS (SAFE, ISOLATED)
+   RENDER HELPERS
 ================================ */
 
-async function fetchAndRender({
-  title,
-  url,
-  parseFn,
-  address,
-}) {
-  const txList = document.getElementById("txList");
+function renderSection(title) {
+  safeInsert(`
+    <li class="muted" style="font-weight:600;margin-top:14px;">
+      ${title}
+    </li>
+  `);
+}
 
-  txList.insertAdjacentHTML("beforeend", sectionHeader(title));
-  txList.insertAdjacentHTML("beforeend", placeholder("Loading…"));
+function renderPlaceholder(text) {
+  safeInsert(`<li class="muted">${text}</li>`);
+}
+
+function renderTx(label, dir, desc, ts) {
+  safeInsert(`
+    <li class="${dir}">
+      <div>
+        <strong>${label}</strong><br/>
+        <span>${desc}</span>
+      </div>
+      <span>${formatTime(ts)}</span>
+    </li>
+  `);
+}
+
+/* ================================
+   GENERIC FETCH + RENDER
+================================ */
+
+async function fetchAndRender({ title, url, parser, address }) {
+  renderSection(title);
+  renderPlaceholder("Loading…");
 
   try {
     const res = await fetch(url);
     const data = await res.json();
 
-    // Remove "Loading…" placeholder
-    txList.lastElementChild.remove();
+    // remove "Loading…"
+    txListEl.lastElementChild?.remove();
 
     if (data.status !== "1" || !Array.isArray(data.result) || !data.result.length) {
-      txList.insertAdjacentHTML(
-        "beforeend",
-        placeholder("No data found")
-      );
+      renderPlaceholder("No data found");
       return;
     }
 
-    data.result.forEach((tx) => {
-      txList.insertAdjacentHTML(
-        "beforeend",
-        parseFn(tx, address)
-      );
-    });
-
+    data.result.forEach((tx) => parser(tx, address));
   } catch (err) {
     console.error(title, err);
-    txList.lastElementChild?.remove();
-    txList.insertAdjacentHTML(
-      "beforeend",
-      placeholder("Failed to load")
-    );
+    txListEl.lastElementChild?.remove();
+    renderPlaceholder("Failed to load");
   }
 }
 
 /* ================================
-   MASTER FETCH (NON-BLOCKING)
+   MASTER FETCH
 ================================ */
 
 function fetchAllTransactions(address) {
-  const txList = document.getElementById("txList");
-  txList.innerHTML = "";
+  clearTxList("Fetching all transaction data…");
 
-  // 1️⃣ Normal ETH
+  // Normal ETH
   fetchAndRender({
     title: "Normal ETH Transactions",
     address,
@@ -112,16 +112,16 @@ function fetchAllTransactions(address) {
       `?module=account&action=txlist` +
       `&address=${address}&page=1&offset=${TX_LIMIT}` +
       `&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parseFn: (tx, addr) =>
+    parser: (tx, addr) =>
       renderTx(
         "ETH",
-        txDirection(tx.from, addr),
+        direction(tx.from, addr),
         `${shorten(tx.hash)} · ${parseFloat(tx.value) / 1e18} ETH`,
         tx.timeStamp
       ),
   });
 
-  // 2️⃣ Internal ETH
+  // Internal ETH
   fetchAndRender({
     title: "Internal ETH Transactions",
     address,
@@ -130,16 +130,16 @@ function fetchAllTransactions(address) {
       `?module=account&action=txlistinternal` +
       `&address=${address}&page=1&offset=${TX_LIMIT}` +
       `&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parseFn: (tx, addr) =>
+    parser: (tx, addr) =>
       renderTx(
         "Internal ETH",
-        txDirection(tx.from, addr),
+        direction(tx.from, addr),
         `${shorten(tx.hash)} · ${parseFloat(tx.value) / 1e18} ETH`,
         tx.timeStamp
       ),
   });
 
-  // 3️⃣ ERC-20 Transfers
+  // ERC-20
   fetchAndRender({
     title: "ERC-20 Token Transfers",
     address,
@@ -148,16 +148,16 @@ function fetchAllTransactions(address) {
       `?module=account&action=tokentx` +
       `&address=${address}&page=1&offset=${TX_LIMIT}` +
       `&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parseFn: (tx, addr) =>
+    parser: (tx, addr) =>
       renderTx(
         tx.tokenSymbol,
-        txDirection(tx.from, addr),
+        direction(tx.from, addr),
         `${tx.value / 10 ** tx.tokenDecimal} ${tx.tokenSymbol}`,
         tx.timeStamp
       ),
   });
 
-  // 4️⃣ NFT Transfers
+  // NFTs
   fetchAndRender({
     title: "NFT Transfers",
     address,
@@ -166,10 +166,10 @@ function fetchAllTransactions(address) {
       `?module=account&action=tokennfttx` +
       `&address=${address}&page=1&offset=${TX_LIMIT}` +
       `&sort=desc&apikey=${ETHERSCAN_API_KEY}`,
-    parseFn: (tx, addr) =>
+    parser: (tx, addr) =>
       renderTx(
         tx.tokenSymbol || "NFT",
-        txDirection(tx.from, addr),
+        direction(tx.from, addr),
         `Token ID ${tx.tokenID}`,
         tx.timeStamp
       ),
@@ -188,21 +188,17 @@ async function connectWallet() {
 
   debugEl.textContent = "Connecting wallet…";
 
-  const accounts = await window.ethereum.request({
-    method: "eth_requestAccounts",
-  });
-
+  const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
   const account = accounts[0];
+
   walletEl.textContent = shorten(account);
 
-  const chainId = await window.ethereum.request({
-    method: "eth_chainId",
-  });
-
+  const chainId = await window.ethereum.request({ method: "eth_chainId" });
   chainEl.textContent = chainId === "0x1" ? "Ethereum Mainnet" : chainId;
 
   if (chainId !== "0x1") {
     debugEl.textContent = "Switch to Ethereum Mainnet.";
+    clearTxList("Ethereum only (for now)");
     return;
   }
 
@@ -211,8 +207,7 @@ async function connectWallet() {
     params: [account, "latest"],
   });
 
-  balanceEl.textContent =
-    (parseInt(bal, 16) / 1e18).toFixed(6) + " ETH";
+  balanceEl.textContent = (parseInt(bal, 16) / 1e18).toFixed(6) + " ETH";
 
   debugEl.textContent = "Fetching all transaction data…";
 
@@ -220,9 +215,16 @@ async function connectWallet() {
 }
 
 /* ================================
-   BOOTSTRAP
+   BOOTSTRAP (SAFE)
 ================================ */
 
 document.addEventListener("DOMContentLoaded", () => {
+  txListEl = document.getElementById("txList");
+
+  if (!txListEl) {
+    console.error("txList element not found in DOM");
+    return;
+  }
+
   document.getElementById("connectBtn").onclick = connectWallet;
 });
