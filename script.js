@@ -1,8 +1,11 @@
 console.log("AutoTrack Liquidity – JS loaded");
 
 /* ================================
-   Chain Configuration
+   Config
 ================================ */
+
+const ETHERSCAN_API_KEY = "7985AZCNWY5J9K4PB84WR4APQ4UBAPEPCH";
+const TX_LIMIT = 10;
 
 const CHAIN_MAP = {
   "0x1": "Ethereum Mainnet",
@@ -13,43 +16,103 @@ const CHAIN_MAP = {
 
 const SUPPORTED_CHAINS = Object.keys(CHAIN_MAP);
 
+/* ================================
+   Helpers
+================================ */
+
 function isSupportedChain(chainId) {
   return SUPPORTED_CHAINS.includes(chainId);
 }
 
-/* ================================
-   UI Helpers
-================================ */
+function shortenHash(hash) {
+  return hash.slice(0, 6) + "…" + hash.slice(-4);
+}
 
-function resetUI(walletEl, chainEl, balanceEl, debugEl, connectBtn) {
-  walletEl.textContent = "Not connected";
-  chainEl.textContent = "–";
-  balanceEl.textContent = "–";
-  debugEl.textContent = "Wallet disconnected.";
-  connectBtn.disabled = false;
+function formatTime(unix) {
+  return new Date(unix * 1000).toLocaleString();
+}
+
+function resetTxList(message) {
+  const txList = document.getElementById("txList");
+  txList.innerHTML = `<li class="muted">${message}</li>`;
 }
 
 /* ================================
-   Core Logic
+   Fetch Transactions (Ethereum)
 ================================ */
 
-async function connectWallet({
-  walletEl,
-  chainEl,
-  balanceEl,
-  debugEl,
-  connectBtn,
-}) {
-  try {
-    debugEl.textContent = "Requesting wallet connection…";
+async function fetchTransactions(address) {
+  resetTxList("Loading transactions…");
 
-    /* ---- Account ---- */
+  try {
+    const url =
+      `https://api.etherscan.io/api` +
+      `?module=account` +
+      `&action=txlist` +
+      `&address=${address}` +
+      `&startblock=0` +
+      `&endblock=99999999` +
+      `&page=1` +
+      `&offset=${TX_LIMIT}` +
+      `&sort=desc` +
+      `&apikey=${ETHERSCAN_API_KEY}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.result || data.result.length === 0) {
+      resetTxList("No transactions found");
+      return;
+    }
+
+    const txList = document.getElementById("txList");
+    txList.innerHTML = "";
+
+    data.result.forEach((tx) => {
+      const direction =
+        tx.from.toLowerCase() === address.toLowerCase()
+          ? "out"
+          : "in";
+
+      const li = document.createElement("li");
+      li.className = direction;
+
+      li.innerHTML = `
+        <div>${shortenHash(tx.hash)}</div>
+        <span>${formatTime(tx.timeStamp)}</span>
+      `;
+
+      txList.appendChild(li);
+    });
+
+  } catch (err) {
+    console.error(err);
+    resetTxList("Failed to load transactions");
+  }
+}
+
+/* ================================
+   Wallet Logic
+================================ */
+
+async function connectWallet(state) {
+  const {
+    walletEl,
+    chainEl,
+    balanceEl,
+    debugEl,
+    connectBtn,
+  } = state;
+
+  try {
+    debugEl.textContent = "Connecting wallet…";
+
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts",
     });
 
-    if (!accounts || !accounts.length) {
-      resetUI(walletEl, chainEl, balanceEl, debugEl, connectBtn);
+    if (!accounts.length) {
+      debugEl.textContent = "No wallet connected.";
       return;
     }
 
@@ -57,7 +120,6 @@ async function connectWallet({
     walletEl.textContent =
       account.slice(0, 6) + "…" + account.slice(-4);
 
-    /* ---- Chain ---- */
     const chainId = await window.ethereum.request({
       method: "eth_chainId",
     });
@@ -69,30 +131,26 @@ async function connectWallet({
 
     chainEl.textContent = chainName;
 
-    if (!supported) {
-      balanceEl.textContent = "–";
-      connectBtn.disabled = true;
+    if (chainId !== "0x1") {
       debugEl.textContent =
-        "Unsupported network. Please switch to Ethereum, Arbitrum, Optimism, or Base.";
+        "Transaction view available only on Ethereum (for now).";
+      balanceEl.textContent = "–";
+      resetTxList("Switch to Ethereum to view transactions");
       return;
     }
 
-    connectBtn.disabled = false;
-
-    /* ---- Balance ---- */
     const balance = await window.ethereum.request({
       method: "eth_getBalance",
       params: [account, "latest"],
     });
 
-    const ethBalance = parseInt(balance, 16) / 1e18;
-    balanceEl.textContent = ethBalance.toFixed(4) + " ETH";
+    balanceEl.textContent =
+      (parseInt(balance, 16) / 1e18).toFixed(4) + " ETH";
 
-    debugEl.textContent = "Wallet connected and synced.";
+    debugEl.textContent = "Wallet connected. Fetching transactions…";
 
-    console.log("Connected account:", account);
-    console.log("Chain ID:", chainId);
-    console.log("Balance (ETH):", ethBalance);
+    fetchTransactions(account);
+
   } catch (err) {
     console.error(err);
     debugEl.textContent = "Wallet connection failed.";
@@ -100,60 +158,28 @@ async function connectWallet({
 }
 
 /* ================================
-   App Bootstrap
+   Bootstrap + Live Events
 ================================ */
 
 document.addEventListener("DOMContentLoaded", () => {
-  const connectBtn = document.getElementById("connectBtn");
-  const walletEl = document.getElementById("wallet");
-  const chainEl = document.getElementById("chain");
-  const balanceEl = document.getElementById("balance");
-  const debugEl = document.querySelector(".debug p");
+  const state = {
+    connectBtn: document.getElementById("connectBtn"),
+    walletEl: document.getElementById("wallet"),
+    chainEl: document.getElementById("chain"),
+    balanceEl: document.getElementById("balance"),
+    debugEl: document.querySelector(".debug p"),
+  };
 
   if (!window.ethereum) {
-    debugEl.textContent = "MetaMask not detected.";
-    connectBtn.disabled = true;
+    state.debugEl.textContent = "MetaMask not detected.";
+    state.connectBtn.disabled = true;
     return;
   }
 
-  debugEl.textContent = "MetaMask detected. Ready.";
+  state.debugEl.textContent = "MetaMask detected. Ready.";
 
-  /* ---- Initial Connect ---- */
-  connectBtn.addEventListener("click", () =>
-    connectWallet({
-      walletEl,
-      chainEl,
-      balanceEl,
-      debugEl,
-      connectBtn,
-    })
-  );
+  state.connectBtn.onclick = () => connectWallet(state);
 
-  /* ================================
-     MetaMask Live Events
-  ================================ */
-
-  window.ethereum.on("accountsChanged", (accounts) => {
-    if (!accounts.length) {
-      resetUI(walletEl, chainEl, balanceEl, debugEl, connectBtn);
-    } else {
-      connectWallet({
-        walletEl,
-        chainEl,
-        balanceEl,
-        debugEl,
-        connectBtn,
-      });
-    }
-  });
-
-  window.ethereum.on("chainChanged", () => {
-    connectWallet({
-      walletEl,
-      chainEl,
-      balanceEl,
-      debugEl,
-      connectBtn,
-    });
-  });
+  window.ethereum.on("accountsChanged", () => connectWallet(state));
+  window.ethereum.on("chainChanged", () => connectWallet(state));
 });
