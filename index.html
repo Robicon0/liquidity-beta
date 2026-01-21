@@ -1,79 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AutoTrack - DeFi Portfolio Analytics</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoTrack Liquidity - Automated LP Position Tracker</title>
+  <meta name="description" content="Automatically track and analyze your DeFi liquidity provider positions across multiple chains and protocols">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-  <div class="bg-gradient"></div>
-  
-  <div class="container">
-    <header>
-      <div class="logo">🎯 AutoTrack</div>
-      <button class="connect-btn" id="connectBtn">Connect Wallet</button>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="app-logo">
+        🎯 AutoTrack Liquidity
+      </div>
+
+      <div class="header-actions">
+        <div id="chainIndicator" class="chain-indicator">
+          <span class="chain-icon">⛓️</span>
+          <span>Ethereum</span>
+        </div>
+
+        <button id="refreshBtn" class="btn btn-secondary" style="display: none;">
+          🔄 Refresh
+        </button>
+
+        <button id="connectWalletBtn" class="btn btn-primary">
+          Connect Wallet
+        </button>
+      </div>
     </header>
 
-    <div id="portfolioView" class="hidden">
-      <!-- Portfolio Overview -->
-      <div class="overview">
-        <div class="stat-card">
-          <div class="stat-label">Total Net Worth</div>
-          <div class="stat-value" id="totalValue">$0.00</div>
-          <div class="stat-change positive" id="valueChange">+$0.00 (24h)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Assets</div>
-          <div class="stat-value" id="totalAssets">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Protocols</div>
-          <div class="stat-value" id="totalProtocols">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Chains</div>
-          <div class="stat-value" id="totalChains">0</div>
-        </div>
-      </div>
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="welcome-screen">
+      <div class="welcome-icon">💧</div>
+      <h1>AutoTrack Liquidity</h1>
+      <p>
+        Automatically track and analyze your DeFi liquidity provider positions
+        across multiple chains and protocols. Get real-time PnL, fee earnings,
+        and impermanent loss calculations.
+      </p>
+      <button onclick="document.getElementById('connectWalletBtn').click()" class="btn btn-primary" style="font-size: 16px; padding: 16px 32px;">
+        Get Started →
+      </button>
 
-      <!-- Chain Tabs -->
-      <div class="chain-tabs" id="chainTabs"></div>
-
-      <!-- Assets Section -->
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Assets</h2>
-          <div class="view-toggle">
-            <button class="view-btn active" data-view="tokens">Tokens</button>
-            <button class="view-btn" data-view="nfts">NFTs</button>
-            <button class="view-btn" data-view="defi">DeFi</button>
-          </div>
+      <div style="margin-top: 60px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <div style="text-align: center; padding: 20px;">
+          <div style="font-size: 32px; margin-bottom: 12px;">🔍</div>
+          <h4 style="margin-bottom: 8px; color: #e2e8f0;">Auto-Detection</h4>
+          <p style="font-size: 14px; color: #64748b;">Automatically finds all your LP positions across supported chains</p>
         </div>
-        <div id="assetsList" class="asset-list"></div>
-      </div>
 
-      <!-- Protocols Section -->
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Protocol Positions</h2>
+        <div style="text-align: center; padding: 20px;">
+          <div style="font-size: 32px; margin-bottom: 12px;">💰</div>
+          <h4 style="margin-bottom: 8px; color: #e2e8f0;">Real-Time PnL</h4>
+          <p style="font-size: 14px; color: #64748b;">Track profits, losses, fees earned, and impermanent loss</p>
         </div>
-        <div id="protocolsList" class="protocols-grid"></div>
+
+        <div style="text-align: center; padding: 20px;">
+          <div style="font-size: 32px; margin-bottom: 12px;">⛓️</div>
+          <h4 style="margin-bottom: 8px; color: #e2e8f0;">Multi-Chain</h4>
+          <p style="font-size: 14px; color: #64748b;">Supports Ethereum, Polygon, Base, Arbitrum, Optimism, and more</p>
+        </div>
       </div>
     </div>
 
-    <div id="emptyState" class="empty-state">
-      <div style="font-size: 48px; margin-bottom: 16px;">👛</div>
-      <h3 style="margin-bottom: 8px; color: #e2e8f0;">Connect Your Wallet</h3>
-      <p>View your complete DeFi portfolio across all chains</p>
-    </div>
-
-    <div id="loadingState" class="loading hidden">
+    <!-- Loading State -->
+    <div id="loadingContainer" class="loading-state hidden">
       <div class="spinner"></div>
-      <p>Loading your portfolio...</p>
+      <p class="loading-text">Loading your portfolio...</p>
+    </div>
+
+    <!-- Main View -->
+    <div id="mainView" class="hidden">
+      <!-- Dashboard -->
+      <div id="dashboardContainer"></div>
+
+      <!-- LP Positions Table -->
+      <div id="positionsContainer"></div>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Scripts (ES6 Modules) -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
