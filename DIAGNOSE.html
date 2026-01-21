@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic Tool</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #0a0e1a;
+      color: #f1f5f9;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .test {
+      margin: 20px 0;
+      padding: 15px;
+      background: rgba(30, 41, 59, 0.6);
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .pass { border-left-color: #10b981; }
+    .fail { border-left-color: #ef4444; }
+    h1 { color: #667eea; }
+    h2 { color: #94a3b8; font-size: 16px; }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .pass .status { background: #10b981; color: white; }
+    .fail .status { background: #ef4444; color: white; }
+    button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 10px 5px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+    }
+    #output {
+      white-space: pre-wrap;
+      background: #000;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 AutoTrack Diagnostic Tool</h1>
+  <p>URL: <strong id="currentUrl"></strong></p>
+
+  <button onclick="runAllTests()">Run Full Diagnostic</button>
+  <button onclick="location.href='index.html'">Go to Main App</button>
+  <button onclick="location.href='BUTTON_TEST.html'">Go to Button Test</button>
+
+  <div id="results"></div>
+  <div id="output"></div>
+
+  <script>
+    document.getElementById('currentUrl').textContent = window.location.href;
+
+    function log(msg) {
+      const output = document.getElementById('output');
+      output.textContent += msg + '\n';
+      console.log(msg);
+    }
+
+    function createTest(title, passed, details) {
+      const div = document.createElement('div');
+      div.className = `test ${passed ? 'pass' : 'fail'}`;
+      div.innerHTML = `
+        <h2>${title} <span class="status">${passed ? 'PASS' : 'FAIL'}</span></h2>
+        <div>${details}</div>
+      `;
+      return div;
+    }
+
+    async function runAllTests() {
+      const results = document.getElementById('results');
+      const output = document.getElementById('output');
+      results.innerHTML = '';
+      output.textContent = '🔍 Starting diagnostic...\n\n';
+
+      // Test 1: Check if we're on HTTPS
+      const isHttps = window.location.protocol === 'https:';
+      results.appendChild(createTest(
+        'Test 1: HTTPS Protocol',
+        isHttps,
+        `Protocol: ${window.location.protocol}<br>` +
+        `${isHttps ? '✅ GitHub Pages HTTPS detected' : '⚠️ Not using HTTPS'}`
+      ));
+      log(`Protocol: ${window.location.protocol}`);
+
+      // Test 2: Check DOM elements
+      const connectBtn = document.getElementById('connectWalletBtn');
+      const hasButton = !!connectBtn;
+      results.appendChild(createTest(
+        'Test 2: Connect Button Exists',
+        hasButton,
+        hasButton
+          ? `✅ Button found with ID: connectWalletBtn<br>Tag: ${connectBtn.tagName}<br>Text: ${connectBtn.textContent}`
+          : '❌ Button not found. Check if index.html is loaded.'
+      ));
+      log(`Connect button: ${hasButton ? 'Found' : 'Not found'}`);
+
+      // Test 3: Check for wallet
+      const hasWallet = typeof window.ethereum !== 'undefined';
+      let walletType = 'None';
+      if (hasWallet) {
+        if (window.ethereum.isRabby) walletType = 'Rabby';
+        else if (window.ethereum.isMetaMask) walletType = 'MetaMask';
+        else walletType = 'Generic Web3';
+      }
+      results.appendChild(createTest(
+        'Test 3: Wallet Detection',
+        hasWallet,
+        hasWallet
+          ? `✅ Wallet detected: ${walletType}<br>window.ethereum: Available<br>isRabby: ${window.ethereum.isRabby || false}<br>isMetaMask: ${window.ethereum.isMetaMask || false}`
+          : '❌ No wallet detected. Install Rabby or MetaMask.'
+      ));
+      log(`Wallet: ${walletType}`);
+
+      // Test 4: Check if button is clickable
+      if (hasButton) {
+        const styles = window.getComputedStyle(connectBtn);
+        const isClickable = styles.pointerEvents !== 'none' && styles.display !== 'none';
+        results.appendChild(createTest(
+          'Test 4: Button Clickable',
+          isClickable,
+          `pointer-events: ${styles.pointerEvents}<br>` +
+          `display: ${styles.display}<br>` +
+          `cursor: ${styles.cursor}<br>` +
+          `z-index: ${styles.zIndex}<br>` +
+          `${isClickable ? '✅ Button should be clickable' : '❌ Button is blocked'}`
+        ));
+        log(`Button pointer-events: ${styles.pointerEvents}`);
+        log(`Button z-index: ${styles.zIndex}`);
+      }
+
+      // Test 5: Check if modules are loading
+      const hasApp = typeof window.app !== 'undefined';
+      results.appendChild(createTest(
+        'Test 5: App Initialized',
+        hasApp,
+        hasApp
+          ? '✅ window.app exists - JavaScript modules loaded'
+          : '❌ window.app not found - Check console for module errors'
+      ));
+      log(`App instance: ${hasApp ? 'Loaded' : 'Not loaded'}`);
+
+      // Test 6: Try to get wallet service
+      let walletServiceLoaded = false;
+      try {
+        // Check if we can access the module
+        walletServiceLoaded = window.app && window.app.constructor.name === 'AutoTrackApp';
+      } catch (e) {
+        log(`Wallet service check error: ${e.message}`);
+      }
+      results.appendChild(createTest(
+        'Test 6: Wallet Service',
+        walletServiceLoaded,
+        walletServiceLoaded
+          ? '✅ Wallet service loaded successfully'
+          : '❌ Wallet service not initialized - Check browser console for errors'
+      ));
+
+      // Test 7: Button click test
+      if (hasButton) {
+        let clickWorks = false;
+        try {
+          const testClick = () => { clickWorks = true; };
+          connectBtn.addEventListener('click', testClick, { once: true });
+          connectBtn.click();
+          connectBtn.removeEventListener('click', testClick);
+        } catch (e) {
+          log(`Click test error: ${e.message}`);
+        }
+        results.appendChild(createTest(
+          'Test 7: Button Click Event',
+          clickWorks,
+          clickWorks
+            ? '✅ Button click events work'
+            : '❌ Button click events blocked'
+        ));
+        log(`Button click test: ${clickWorks ? 'Success' : 'Failed'}`);
+      }
+
+      // Test 8: Check for console errors
+      log('\n📋 SUMMARY:');
+      log(`✓ URL: ${window.location.href}`);
+      log(`✓ Protocol: ${window.location.protocol}`);
+      log(`✓ Wallet: ${walletType}`);
+      log(`✓ Button exists: ${hasButton ? 'Yes' : 'No'}`);
+      log(`✓ App loaded: ${hasApp ? 'Yes' : 'No'}`);
+      log('\n💡 Next Step:');
+      if (!hasWallet) {
+        log('   → Install Rabby wallet');
+      } else if (!hasButton) {
+        log('   → Make sure you\'re on the main page (index.html)');
+      } else if (!hasApp) {
+        log('   → Check browser console (F12) for JavaScript errors');
+      } else {
+        log('   → Try clicking "Connect Wallet" button now!');
+      }
+    }
+
+    // Run on load if we're on the diagnostic page
+    if (window.location.href.includes('DIAGNOSE.html')) {
+      setTimeout(runAllTests, 500);
+    }
+  </script>
+</body>
+</html>

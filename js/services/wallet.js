@@ -1,6 +1,7 @@
 /**
  * Wallet Service
  * Handles wallet connection, chain switching, and account management
+ * Supports MetaMask, Rabby, and other EIP-1193 compatible wallets
  */
 
 import { CHAINS, getChainById, isChainSupported } from '../config/chains.js';
@@ -12,6 +13,7 @@ class WalletService {
     this.address = null;
     this.chainId = null;
     this.isConnected = false;
+    this.walletType = null;
     this.listeners = {
       accountChanged: [],
       chainChanged: [],
@@ -26,10 +28,47 @@ class WalletService {
    * Initialize wallet service
    */
   init() {
-    if (typeof window.ethereum !== 'undefined') {
-      this.provider = window.ethereum;
+    console.log('🔌 Initializing wallet service...');
+
+    // Detect wallet provider
+    this.detectProvider();
+
+    if (this.provider) {
+      console.log(`✅ Wallet detected: ${this.walletType}`);
       this.setupEventListeners();
       this.checkIfConnected();
+    } else {
+      console.warn('⚠️ No Web3 wallet detected');
+    }
+  }
+
+  /**
+   * Detect wallet provider (Rabby, MetaMask, etc.)
+   */
+  detectProvider() {
+    // Check for Rabby first (it sets window.ethereum too)
+    if (typeof window.ethereum !== 'undefined') {
+      if (window.ethereum.isRabby) {
+        this.provider = window.ethereum;
+        this.walletType = 'Rabby';
+        console.log('🦊 Rabby wallet detected');
+      } else if (window.ethereum.isMetaMask) {
+        this.provider = window.ethereum;
+        this.walletType = 'MetaMask';
+        console.log('🦊 MetaMask detected');
+      } else {
+        // Generic EIP-1193 provider
+        this.provider = window.ethereum;
+        this.walletType = 'Web3 Wallet';
+        console.log('👛 Generic Web3 wallet detected');
+      }
+    }
+
+    // Fallback for other wallets
+    if (!this.provider && typeof window.web3 !== 'undefined') {
+      this.provider = window.web3.currentProvider;
+      this.walletType = 'Legacy Web3';
+      console.log('🔧 Legacy Web3 provider detected');
     }
   }
 
@@ -39,48 +78,61 @@ class WalletService {
   setupEventListeners() {
     if (!this.provider) return;
 
-    // Account changed - auto reload data
-    this.provider.on('accountsChanged', (accounts) => {
-      console.log('🔄 Account changed:', accounts[0]);
+    console.log('📡 Setting up wallet event listeners...');
 
-      if (accounts.length === 0) {
+    try {
+      // Account changed - auto reload data
+      this.provider.on('accountsChanged', (accounts) => {
+        console.log('🔄 Account changed:', accounts[0] || 'disconnected');
+
+        if (accounts.length === 0) {
+          this.handleDisconnect();
+        } else {
+          this.address = accounts[0];
+          this.emit('accountChanged', accounts[0]);
+        }
+      });
+
+      // Chain changed - auto reload data for new chain
+      this.provider.on('chainChanged', (chainId) => {
+        console.log('⛓️ Chain changed:', chainId);
+
+        this.chainId = chainId;
+        const chain = getChainById(chainId);
+
+        if (chain) {
+          console.log(`✅ Switched to ${chain.name}`);
+          this.emit('chainChanged', { chainId, chain });
+        } else {
+          console.warn('⚠️ Unsupported chain:', chainId);
+          this.emit('chainChanged', { chainId, chain: null });
+        }
+      });
+
+      // Disconnect
+      this.provider.on('disconnect', () => {
+        console.log('🔌 Wallet disconnected');
         this.handleDisconnect();
-      } else {
-        this.address = accounts[0];
-        this.emit('accountChanged', accounts[0]);
-      }
-    });
+      });
 
-    // Chain changed - auto reload data for new chain
-    this.provider.on('chainChanged', (chainId) => {
-      console.log('⛓️ Chain changed:', chainId);
-
-      this.chainId = chainId;
-      const chain = getChainById(chainId);
-
-      if (chain) {
-        console.log(`✅ Switched to ${chain.name}`);
-        this.emit('chainChanged', { chainId, chain });
-      } else {
-        console.warn('⚠️ Unsupported chain:', chainId);
-        this.emit('chainChanged', { chainId, chain: null });
-      }
-    });
-
-    // Disconnect
-    this.provider.on('disconnect', () => {
-      console.log('🔌 Wallet disconnected');
-      this.handleDisconnect();
-    });
+      console.log('✅ Event listeners setup complete');
+    } catch (error) {
+      console.error('Error setting up event listeners:', error);
+    }
   }
 
   /**
    * Check if wallet is already connected
    */
   async checkIfConnected() {
+    if (!this.provider) return false;
+
     try {
+      console.log('🔍 Checking if wallet is already connected...');
+
       const accounts = await this.provider.request({ method: 'eth_accounts' });
-      if (accounts.length > 0) {
+
+      if (accounts && accounts.length > 0) {
         this.address = accounts[0];
         this.chainId = await this.provider.request({ method: 'eth_chainId' });
         this.isConnected = true;
@@ -89,12 +141,16 @@ class WalletService {
         localStorage.setItem(APP_CONFIG.storageKeys.walletAddress, this.address);
 
         console.log('✅ Wallet already connected:', this.address);
+        console.log('⛓️ Chain:', this.chainId);
         return true;
       }
+
+      console.log('ℹ️ Wallet not connected yet');
+      return false;
     } catch (error) {
       console.error('Error checking connection:', error);
+      return false;
     }
-    return false;
   }
 
   /**
@@ -102,17 +158,25 @@ class WalletService {
    * @returns {Promise<Object>} Connection result
    */
   async connect() {
+    console.log('🔗 Connecting wallet...');
+
     if (!this.provider) {
-      throw new Error(ERRORS.NO_WALLET);
+      const error = `${ERRORS.NO_WALLET}\n\nPlease install:\n- Rabby: https://rabby.io\n- MetaMask: https://metamask.io`;
+      console.error('❌', error);
+      throw new Error(error);
     }
 
     try {
-      console.log('🔗 Connecting wallet...');
+      console.log(`🔌 Requesting connection to ${this.walletType}...`);
 
       // Request account access
       const accounts = await this.provider.request({
         method: 'eth_requestAccounts'
       });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts returned from wallet');
+      }
 
       this.address = accounts[0];
       this.chainId = await this.provider.request({ method: 'eth_chainId' });
@@ -124,25 +188,35 @@ class WalletService {
       const chain = getChainById(this.chainId);
 
       console.log('✅', MESSAGES.WALLET_CONNECTED);
+      console.log('   Wallet:', this.walletType);
       console.log('   Address:', this.address);
-      console.log('   Chain:', chain?.name || 'Unknown');
+      console.log('   Chain:', chain?.name || this.chainId);
 
       this.emit('connected', {
         address: this.address,
         chainId: this.chainId,
-        chain
+        chain,
+        walletType: this.walletType
       });
 
       return {
         success: true,
         address: this.address,
         chainId: this.chainId,
-        chain
+        chain,
+        walletType: this.walletType
       };
 
     } catch (error) {
       console.error('❌ Connection failed:', error);
-      throw new Error(ERRORS.CONNECTION_FAILED);
+
+      if (error.code === 4001) {
+        throw new Error('Connection rejected by user');
+      } else if (error.code === -32002) {
+        throw new Error('Connection request already pending. Please check your wallet.');
+      }
+
+      throw new Error(ERRORS.CONNECTION_FAILED + ': ' + error.message);
     }
   }
 
@@ -157,6 +231,8 @@ class WalletService {
    * Handle disconnect
    */
   handleDisconnect() {
+    console.log('🔌 Handling disconnect...');
+
     this.address = null;
     this.chainId = null;
     this.isConnected = false;
@@ -164,6 +240,8 @@ class WalletService {
     localStorage.removeItem(APP_CONFIG.storageKeys.walletAddress);
 
     this.emit('disconnected');
+
+    console.log('✅ Disconnect handled');
   }
 
   /**
@@ -266,6 +344,22 @@ class WalletService {
   }
 
   /**
+   * Get wallet type
+   * @returns {string|null} Wallet type
+   */
+  getWalletType() {
+    return this.walletType;
+  }
+
+  /**
+   * Check if provider is available
+   * @returns {boolean} Provider availability
+   */
+  isProviderAvailable() {
+    return this.provider !== null;
+  }
+
+  /**
    * Event emitter - on
    * @param {string} event - Event name
    * @param {Function} callback - Callback function
@@ -294,7 +388,13 @@ class WalletService {
    */
   emit(event, data) {
     if (this.listeners[event]) {
-      this.listeners[event].forEach(callback => callback(data));
+      this.listeners[event].forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error(`Error in ${event} listener:`, error);
+        }
+      });
     }
   }
 
@@ -303,7 +403,7 @@ class WalletService {
    * @returns {Promise<string>} Balance in ETH
    */
   async getBalance() {
-    if (!this.address) return '0';
+    if (!this.address || !this.provider) return '0';
 
     try {
       const balance = await this.provider.request({
@@ -321,3 +421,6 @@ class WalletService {
 
 // Export singleton instance
 export const walletService = new WalletService();
+
+// Log initialization
+console.log('✅ Wallet service module loaded');

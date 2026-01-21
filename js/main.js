@@ -12,14 +12,23 @@ import { Dashboard } from './components/dashboard.js';
 import { LPPositionsTable } from './components/lpPositions.js';
 import { CHAINS } from './config/chains.js';
 
+console.log('🎯 AutoTrack Main Script Loading...');
+
 class AutoTrackApp {
   constructor() {
-    this.dashboard = new Dashboard('dashboardContainer');
-    this.positionsTable = new LPPositionsTable('positionsContainer');
+    console.log('🎯 AutoTrack App Constructor');
+
+    this.dashboard = null;
+    this.positionsTable = null;
     this.currentPositions = [];
     this.isLoading = false;
 
-    this.init();
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.init());
+    } else {
+      this.init();
+    }
   }
 
   /**
@@ -28,6 +37,10 @@ class AutoTrackApp {
   async init() {
     console.log('🎯 AutoTrack Liquidity - Initializing...');
 
+    // Initialize components
+    this.dashboard = new Dashboard('dashboardContainer');
+    this.positionsTable = new LPPositionsTable('positionsContainer');
+
     // Setup event listeners
     this.setupEventListeners();
 
@@ -35,11 +48,16 @@ class AutoTrackApp {
     this.setupWalletListeners();
 
     // Check if already connected
-    const isConnected = await walletService.checkIfConnected();
-    if (isConnected) {
-      this.onWalletConnected();
-      await this.loadPortfolio();
-    } else {
+    try {
+      const isConnected = await walletService.checkIfConnected();
+      if (isConnected) {
+        this.onWalletConnected();
+        await this.loadPortfolio();
+      } else {
+        this.showWelcomeScreen();
+      }
+    } catch (error) {
+      console.error('Error checking connection:', error);
       this.showWelcomeScreen();
     }
 
@@ -50,17 +68,31 @@ class AutoTrackApp {
    * Setup event listeners
    */
   setupEventListeners() {
+    console.log('📌 Setting up event listeners...');
+
     // Connect wallet button
     const connectBtn = document.getElementById('connectWalletBtn');
     if (connectBtn) {
-      connectBtn.addEventListener('click', () => this.connectWallet());
+      console.log('✅ Found connect button');
+      connectBtn.addEventListener('click', () => {
+        console.log('🔘 Connect button clicked');
+        this.connectWallet();
+      });
+    } else {
+      console.error('❌ Connect button not found!');
     }
 
     // Refresh button
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => this.loadPortfolio());
+      console.log('✅ Found refresh button');
+      refreshBtn.addEventListener('click', () => {
+        console.log('🔘 Refresh button clicked');
+        this.loadPortfolio();
+      });
     }
+
+    console.log('✅ Event listeners setup complete');
   }
 
   /**
@@ -98,18 +130,26 @@ class AutoTrackApp {
    * Connect wallet
    */
   async connectWallet() {
+    console.log('🔗 Connecting wallet...');
+
     try {
       this.showLoading('Connecting wallet...');
 
       const result = await walletService.connect();
 
       if (result.success) {
+        console.log('✅ Wallet connected successfully');
         this.onWalletConnected();
         this.showNotification(`Connected to ${result.chain?.name || 'network'}`, 'success');
+
+        // Show refresh button
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) refreshBtn.style.display = 'inline-block';
+
         await this.loadPortfolio();
       }
     } catch (error) {
-      console.error('Connection error:', error);
+      console.error('❌ Connection error:', error);
       this.showNotification('Failed to connect wallet: ' + error.message, 'error');
       this.hideLoading();
     }
@@ -210,6 +250,9 @@ class AutoTrackApp {
       chainIndicator.style.display = 'none';
     }
 
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) refreshBtn.style.display = 'none';
+
     this.currentPositions = [];
     this.showWelcomeScreen();
   }
@@ -239,8 +282,11 @@ class AutoTrackApp {
   showLoading(message = 'Loading...') {
     const loadingContainer = document.getElementById('loadingContainer');
     if (loadingContainer) {
-      loadingContainer.querySelector('.loading-text').textContent = message;
+      const loadingText = loadingContainer.querySelector('.loading-text');
+      if (loadingText) loadingText.textContent = message;
       this.showElement('loadingContainer');
+      this.hideElement('welcomeScreen');
+      this.hideElement('mainView');
     }
   }
 
@@ -289,7 +335,11 @@ class AutoTrackApp {
    */
   showElement(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.remove('hidden');
+    if (el) {
+      el.classList.remove('hidden');
+    } else {
+      console.warn(`Element not found: ${id}`);
+    }
   }
 
   /**
@@ -298,15 +348,17 @@ class AutoTrackApp {
    */
   hideElement(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
+    if (el) {
+      el.classList.add('hidden');
+    } else {
+      console.warn(`Element not found: ${id}`);
+    }
   }
 }
 
-// Initialize app when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    window.app = new AutoTrackApp();
-  });
-} else {
-  window.app = new AutoTrackApp();
-}
+// Initialize app
+console.log('📌 Creating AutoTrackApp instance...');
+const app = new AutoTrackApp();
+window.app = app;
+
+console.log('✅ Main script loaded');

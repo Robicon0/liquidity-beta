@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test</title>
+</head>
+<body>
+  <button id="testBtn">Test Button</button>
+  <div id="output"></div>
+
+  <script type="module">
+    console.log('Script loaded');
+
+    document.getElementById('testBtn').addEventListener('click', () => {
+      document.getElementById('output').textContent = 'Button clicked! Modules working.';
+      console.log('Button works!');
+    });
+
+    // Test import
+    import { CHAINS } from './js/config/chains.js';
+    console.log('Chains loaded:', Object.keys(CHAINS));
+  </script>
+</body>
+</html>
